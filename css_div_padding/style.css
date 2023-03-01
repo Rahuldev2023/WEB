@@ -1,0 +1,28 @@
+body{
+ margin:0px;
+}
+h1{
+    margin:0px;
+}
+
+.top{
+    background-color: blue;
+    height: 200px;
+    width:200px;
+    border:solid 10px;
+    padding:20px;
+}
+.mid{
+    background-color: rgb(255, 0, 0);
+    height: 200px;
+    width:200px;
+    border:solid 20px;
+    margin-left:260px;
+}
+.bottom{
+    background-color: rgb(30, 255, 0);
+    height: 200px;
+    width:200px;
+    border:solid 10px;
+    margin-left:500px;
+}
