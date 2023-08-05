@@ -7,6 +7,8 @@ app.set('view engine','ejs');
 
 app.use(bodyParser.urlencoded({extended:true}));
 
+app.use(express.static("public"));
+
 var items=["STUDY","EAT","CHILL"];
 
 app.get("/",(req,res)=>{
@@ -24,6 +26,7 @@ app.get("/",(req,res)=>{
 });
 
 
+
 app.post("/",(req,res)=>{
     var item=req.body.newItem;
     items.push(item);
@@ -33,6 +36,6 @@ app.post("/",(req,res)=>{
 
 
 
-app.listen(3000,()=>{
+app.listen(5000,()=>{
     console.log("server running....");
 });
