@@ -1,6 +1,6 @@
 const express=require("express");
 const bodyParser=require("body-parser");
-
+const date=require(__dirname+"/date.js");
 const app=express();
 
 app.set('view engine','ejs');
@@ -9,20 +9,12 @@ app.use(bodyParser.urlencoded({extended:true}));
 
 app.use(express.static("public"));
 
-let items=["STUDY","EAT","CHILL"];
-let workItems=[];
+const items=["STUDY","EAT","CHILL"]; //we can push item but cannot change it
+const workItems=[];
 
 
 app.get("/",(req,res)=>{
-    var today= new Date();
-      
-    var options={
-        weekday:"long",
-        day:"numeric",
-        month:"long"
-    };
-
-    var day=today.toLocaleDateString("en-US",options); 
+    let day=date.getDate();
     res.render("list",{ listTitle: day, newListItems: items });
 
 });
