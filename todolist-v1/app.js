@@ -51,6 +51,7 @@ app.get("/", async (req, res) => {
       console.log("Documents inserted successfully!");
       res.redirect("/");
     } else {
+        //if not empty rendering the items that are present in the list
       res.render("list", { listTitle: "Today", newListItems: foundItems });
     }
   } catch (error) {
@@ -58,6 +59,7 @@ app.get("/", async (req, res) => {
   }
 });
 
+//creating customLists with express routes and checking with findOne whether any list already exists !
 app.get("/:customListName", async (req, res) => {
   const customListName = req.params.customListName;
   try {
@@ -68,14 +70,17 @@ app.get("/:customListName", async (req, res) => {
         items: defaultItems,
       });
       await list.save();
+       //without redirecting to the custom List document the page cannot be loaded
       res.redirect("/" + customListName);
     } else {
+      //if the lists already exists then render the page with its items 
       res.render("list", { listTitle: foundList.name, newListItems: foundList.items });
     }
   } catch (error) {
     console.error(error);
   }
 });
+
 
 app.post("/", async (req, res) => {
   const itemName = req.body.newItem;
@@ -104,6 +109,7 @@ app.post("/", async (req, res) => {
 app.post("/delete", async (req, res) => {
   const checkedItemId = req.body.checkbox;
   try {
+    //findByIdAndRemove removes the checked item and removes the document from the items collection
     await Item.findByIdAndRemove(checkedItemId);
     console.log("Document deleted successfully!");
     res.redirect("/");
