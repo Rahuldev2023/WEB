@@ -5,139 +5,113 @@ const date=require(__dirname+"/date.js");
 const app=express();
 
 app.set('view engine','ejs');
-
 app.use(bodyParser.urlencoded({extended:true}));
-
-app.use((req, res, next) => {
-    const currentDate = date.getDate();
-    res.locals.currentDate = currentDate;
-    next();
-  });
-
 app.use(express.static("public"));
 
 mongoose.connect("mongodb://127.0.0.1:27017/todolistDB?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+1.10.3");
 
 
-//items schema
+//items and lists schema
 const itemSchema=new mongoose.Schema({
     name:String
 });
-
-//listschema
 const listSchema=new mongoose.Schema({
     name:String,
     items:[itemSchema]
 });
 
-//items model
+//items model and lists model
 const Item=mongoose.model("Item",itemSchema);
-//List Model
 const List=mongoose.model("List",listSchema);
 
+const defaultItems = [
+  {
+    name: "Welcome to To-Do List App",
+  },
+  {
+    name: "Click + to add tasks",
+  },
+  {
+    name: "<= Hit this to delete completed tasks",
+  },
+];
 
-//creating items or documents
-const item1= new Item({
-name:"Welcome"
-})
-const item2= new Item({
-    name:"click+ to add"
-})
-const item3= new Item({
-        name:"hit this to delete"
-})
-
-//array to store default items
-const defaultItems=[item1,item2,item3];
-
-
-
-app.get("/",(req,res)=>{
-    //find() mongoose method with .exec() and then()
-    Item.find({}).exec().then((foundItems) => {
-        
-            //checking if the array is empty or not
-            if(foundItems.length === 0){
-                //mongoose insertMany() function with error messages
-                Item.insertMany(defaultItems)
-                .then(result=>{
-                    console.log("Documents inserted successfully!");
-                })
-                .catch((error) => {
-                    console.error('Error inserting documents:', error);
-                });
-                //after inserting re-routing to home route to update the db
-                res.redirect("/");
-            }else{
-                //if not empty rendering the items that are present in the list
-                res.render("list",{ listTitle: "Today", newListItems: foundItems });
-            }
-        
-    }).catch(error => {
-      console.error(error);
-    });
-});
-
-//creating customLists with express routes and checking with findOne whether any list already exists !
-app.get("/:customListName", (req, res) => {
-    const customListName = req.params.customListName;
-  
-    List.findOne({ name: customListName })
-      .then(foundList => {
-        if (!foundList) {
-            const list = new List({
-            name: customListName,
-            items: defaultItems
-          });
-          list.save();
-          //without redirecting to the custom List document the page cannot be loaded
-          res.redirect("/"+ customListName);
-        } else {
-            res.render("list",{ listTitle: foundList.name, newListItems:foundList.items });
-        }
-      })
-      .catch(error => {
-        console.error(error); 
-      });
+app.use((req, res, next) => {//a middleware function for req and res
+    const currentDate = date.getDate();
+    res.locals.currentDate = currentDate;//res.locals object in Express.js is a property that provides a way to store response-local variables. These variables can then be accessed within your views (e.g., EJS templates) without needing to pass them explicitly to each route handler. In this case, you're storing the current date as res.locals.currentDate.
+    next();//the next() function is called, which passes control to the next middleware or route handler in the application's request-response cycle. This allows the application to continue processing the request after setting the currentDate in res.locals.
+//By adding this middleware, you ensure that the currentDate variable is available in all your views and route handlers, allowing you to display the current date on every page of your Express.js application. This approach provides a convenient and consistent way to include common data (in this case, the current date) across multiple parts of your application.
   });
-  
 
-  app.post("/", (req, res) => {
-    const itemName = req.body.newItem;
-    const listName = req.body.list;
-    const item = new Item({
-      name: itemName
-    });
-  
-    if (listName === "Today") {
-      item.save();
+app.get("/", async (req, res) => {
+  try {
+    const foundItems = await Item.find({});
+    if (foundItems.length === 0) {
+      await Item.insertMany(defaultItems);
+      console.log("Documents inserted successfully!");
       res.redirect("/");
     } else {
-      // Find the list by name
-      List.findOne({ name: listName }).then((foundList) => {
-        if (foundList) {
-          // If the list exists, push the item and save the list
-          foundList.items.push(item);
-          foundList.save();
-          res.redirect("/" + listName);  
-        }
-    })
+      res.render("list", { listTitle: "Today", newListItems: foundItems });
+    }
+  } catch (error) {
+    console.error(error);
   }
-})
-
-app.post("/delete",(req,res)=>{
-const checkedItemId= req.body.checkbox;
-//findByIdAndRemove removes the checked item and removes the document from the items collection
-Item.findByIdAndRemove(checkedItemId).then(result=>{
-    console.log("Documents deleted successfully!");
-})
-.catch((error) => {
-    console.error('Error inserting documents:', error);
-});
-res.redirect("/");
 });
 
+app.get("/:customListName", async (req, res) => {
+  const customListName = req.params.customListName;
+  try {
+    const foundList = await List.findOne({ name: customListName });
+    if (!foundList) {
+      const list = new List({
+        name: customListName,
+        items: defaultItems,
+      });
+      await list.save();
+      res.redirect("/" + customListName);
+    } else {
+      res.render("list", { listTitle: foundList.name, newListItems: foundList.items });
+    }
+  } catch (error) {
+    console.error(error);
+  }
+});
 
-app.listen(3000,()=>{
-    console.log("server running....");
+app.post("/", async (req, res) => {
+  const itemName = req.body.newItem;
+  const listName = req.body.list;
+  const item = new Item({
+    name: itemName,
+  });
+
+  if (listName === "Today") {
+    await item.save();
+    res.redirect("/");
+  } else {
+    try {
+      const foundList = await List.findOne({ name: listName });
+      if (foundList) {
+        foundList.items.push(item);
+        await foundList.save();
+        res.redirect("/" + listName);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+});
+
+app.post("/delete", async (req, res) => {
+  const checkedItemId = req.body.checkbox;
+  try {
+    await Item.findByIdAndRemove(checkedItemId);
+    console.log("Document deleted successfully!");
+    res.redirect("/");
+  } catch (error) {
+    console.error("Error deleting document:", error);
+  }
+});
+
+app.listen(3000, () => {
+  console.log("Server running on port 3000");
 });
