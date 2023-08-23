@@ -2,6 +2,7 @@ const express=require("express");
 const bodyParser=require("body-parser");
 const mongoose=require("mongoose");
 const date=require(__dirname+"/date.js");
+const _=require("lodash");
 const app=express();
 
 app.set('view engine','ejs');
@@ -61,7 +62,8 @@ app.get("/", async (req, res) => {
 
 //creating customLists with express routes and checking with findOne whether any list already exists !
 app.get("/:customListName", async (req, res) => {
-  const customListName = req.params.customListName;
+  //lodash converts only the 1st letter to uppercase and the rest to lowercase.
+  const customListName = _.capitalize(req.params.customListName);
   try {
     const foundList = await List.findOne({ name: customListName });
     if (!foundList) {
@@ -106,17 +108,31 @@ app.post("/", async (req, res) => {
   }
 });
 
+
 app.post("/delete", async (req, res) => {
   const checkedItemId = req.body.checkbox;
+  const listName = req.body.listName;
   try {
-    //findByIdAndRemove removes the checked item and removes the document from the items collection
-    await Item.findByIdAndRemove(checkedItemId);
-    console.log("Document deleted successfully!");
-    res.redirect("/");
+    if (listName === "Today") {
+      // For the "Today" list, remove the item by its ID
+      await Item.findByIdAndRemove(checkedItemId);
+      console.log("Document deleted successfully!");
+      res.redirect("/");
+    } else {
+      // For custom lists, use $pull to remove the item from the items array
+      const foundList = await List.findOneAndUpdate(
+        { name: listName },
+        { $pull: { items: { _id: checkedItemId } } }
+      );
+      if (foundList) {
+        res.redirect("/" + listName);
+      }
+    }
   } catch (error) {
     console.error("Error deleting document:", error);
   }
 });
+
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");

@@ -16,8 +16,8 @@
                 <input type="checkbox" name="checkbox" value="<%= item._id %>" onChange="this.form.submit()">
                 <!--taping into name field of the items array -->
                 <p><%=item.name%></p> 
-
             </div>
+            <input type="hidden" name="listName" value=<%=listTitle %>></input>
             </form>
 
             <%})%>
